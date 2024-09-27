@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeakEasy_Peasy - Enhance Your Duolingo Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-image: url('https://source.unsplash.com/1600x900/?language,communication');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 28, 58, 0.8);
+            z-index: -1;
+        }
+        .container {
+            background-color: rgba(30, 40, 80, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+        .svg-container {
+            flex: 1;
+            padding-right: 2rem;
+        }
+        .svg-container svg {
+            width: 100%;
+            height: auto;
+        }
+        .form-container {
+            flex: 1;
+        }
+        h1 {
+            font-family: 'Nunito', sans-serif;
+            color: #58cc02;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+        p {
+            color: #fff;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        input {
+            font-family: 'Nunito', sans-serif;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+        }
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        button {
+            font-family: 'Nunito', sans-serif;
+            background-color: #58cc02;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        button:hover {
+            background-color: #46a302;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                padding: 2rem;
+            }
+            .svg-container {
+                display: none;
+            }
+            .form-container {
+                width: 100%;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+        .success-message {
+            display: none;
+            background-color: #58cc02;
+            color: white;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            text-align: center;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 28, 58, 0.8);
+            color: #fff;
+            text-align: center;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #58cc02;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            footer {
+               
+                margin-top: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            footer span {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="svg-container">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080" width="1080" height="1080" preserveAspectRatio="xMidYMid meet">
+                <!-- SVG content goes here -->
+            </svg>
+        </div>
+        <div class="form-container">
+            <h1>SpeakEasy_Peasy</h1>
+            <p>Take your Duolingo learning to the next level! Export your achievements and connect with verified learners at your level for real conversations. Chat and video call with language enthusiasts who share your interests and goals!</p>
+            <form id="waitlist-form" action="https://formspree.io/f/xblrndyw" method="POST">
+                <input type="email" name="email" placeholder="Your email address" required>
+                <input type="text" name="language" placeholder="Your X UserName (optional)">
+                <button type="submit">
+                    Join the Waitlist
+                    <span class="spinner hidden"></span>
+                </button>
+            </form>
+            <div id="success-message" class="success-message">
+                Thanks for joining! We'll keep you updated on our launch.
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <span>Built with ❤️ by</span>
+        <a href="https://twitter.com/koushithamin" target="_blank" rel="noopener noreferrer">Koushith</a>
+    </footer>
+
+    <script>
+        const form = document.getElementById('waitlist-form');
+        const successMessage = document.getElementById('success-message');
+        const submitButton = form.querySelector('button[type="submit"]');
+        const spinner = submitButton.querySelector('.spinner');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            // Show spinner and disable button
+            spinner.classList.remove('hidden');
+            submitButton.disabled = true;
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    form.style.display = 'none';
+                    successMessage.style.display = 'block';
+                } else {
+                    throw new Error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Oops! There was a problem submitting your form. Please try again.');
+            })
+            .finally(() => {
+                // Hide spinner and enable button
+                spinner.classList.add('hidden');
+                submitButton.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
