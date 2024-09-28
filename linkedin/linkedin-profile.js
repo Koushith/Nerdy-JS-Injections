@@ -11,6 +11,33 @@
 // - experience - done
 // - education - done
 
+
+
+
+//------------------------ Modal Function ------------------------
+
+function modal() {
+    let modal = document.createElement("div");
+    modal.id = "proofGenerationModal";
+    modal.style.display = "none";
+    modal.style.position = "fixed";
+    modal.style.zIndex = "1";
+    modal.style.paddingTop = "100px";
+    modal.style.left = "0";
+    modal.style.top = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.overflow = "auto";
+    modal.style.backgroundColor = "rgb(0,0,0)";
+    modal.style.backgroundColor = "rgba(0,0,0,0.4)";
+    modal.innerHTML =
+      '<div style="background-color: #fefefe; margin: auto; padding: 20px; border: 1px solid #888; width: 80%;"><h3 style="text-align: center; padding-bottom: 20px">Fetching data</h3><p style="text-align: center;">Please wait while we fetch your profile data</p></div>';
+    document.body.appendChild(modal);
+    document.getElementById("proofGenerationModal").style.display = "block";
+  }
+
+
+
 //------------------------ Education Section ------------------------
 
 function findEducationSection() {
@@ -54,7 +81,7 @@ function grabEducationSection() {
     return;
   }
 
-  console.log('Education section found:', educationSection);
+  //console.log('Education section found:', educationSection);
 
   const educationData = {
     sectionTitle: 'Education',
@@ -100,7 +127,8 @@ function grabEducationSection() {
     console.log('Education list not found within the section');
   }
 
-  console.log('Education Data:', JSON.stringify(educationData, null, 2));
+ // console.log('Education Data:', JSON.stringify(educationData, null, 2));
+ return educationData;
 }
 
 // Immediately invoke the function
@@ -142,32 +170,35 @@ function grabExperienceSection() {
     const experienceList = experienceSection.querySelector('ul');
     if (experienceList) {
         experienceData.entries = Array.from(experienceList.children).map((item) => {
+            const details = item.querySelectorAll('.visually-hidden');
+            const detailsArray = Array.from(details).map(detail => detail.innerText.trim());
+
             const entry = {
-                role: '',
-                company: '',
-                duration: '',
-                details: []
+                company: detailsArray[0] || '',
+                duration: detailsArray[1] || '',
+                location: detailsArray[2] || '',
+                role: detailsArray[3] || '',
+                details: detailsArray[8] || ''
             };
 
-            const roleTitle = item.querySelector('.t-bold .visually-hidden');
-            const company = item.querySelector('.t-normal .visually-hidden');
-            const duration = item.querySelector('.t-normal.t-black--light .visually-hidden');
-            
-            if (roleTitle) entry.role = roleTitle.innerText.trim();
-            if (company) entry.company = company.innerText.trim();
-            if (duration) entry.duration = duration.innerText.trim();
-            
-            // Additional details (if any)
-            const details = item.querySelectorAll('ul li .visually-hidden');
-            if (details.length > 0) {
-                entry.details = Array.from(details).map(detail => detail.innerText.trim());
+            // Check if there are multiple roles
+            if (detailsArray.length > 9) {
+                entry.roles = [];
+                for (let i = 3; i < detailsArray.length; i += 3) {
+                    if (detailsArray[i] && detailsArray[i+1] && detailsArray[i+2]) {
+                        entry.roles.push({
+                            title: detailsArray[i],
+                            duration: detailsArray[i+1],
+                            location: detailsArray[i+2]
+                        });
+                    }
+                }
             }
 
             return entry;
         });
     }
 
-    console.log('Experience Data:', JSON.stringify(experienceData, null, 2));
     return experienceData;
 }
 
@@ -242,56 +273,57 @@ function findHeroSection() {
 }
 
 function grabHeroSection() {
-  const waitForElement = setInterval(() => {
-    const heroSection = findHeroSection();
+  return new Promise((resolve) => {
+    const waitForElement = setInterval(() => {
+      const heroSection = findHeroSection();
 
-    if (heroSection) {
+      if (heroSection) {
+        clearInterval(waitForElement);
+
+        const heroData = {};
+
+        // Name
+        const nameElement = heroSection.querySelector('h1.text-heading-xlarge');
+        if (nameElement) heroData.name = nameElement.innerText.trim();
+
+        // Headline
+        const headlineElement = heroSection.querySelector('.text-body-medium');
+        if (headlineElement) heroData.headline = headlineElement.innerText.trim();
+
+        // Location
+        const locationElement = heroSection.querySelector('.text-body-small:not(.inline)');
+        if (locationElement) heroData.location = locationElement.innerText.trim();
+
+        // Profile Image
+        const profileImageElement = heroSection.querySelector('.pv-top-card__photo-wrapper img');
+        if (profileImageElement) heroData.profileImageUrl = profileImageElement.src;
+
+        // Background Image
+        const backgroundImageElement = heroSection.querySelector('.profile-background-image__image-container img');
+        if (backgroundImageElement) heroData.backgroundImageUrl = backgroundImageElement.src;
+
+        // Connections
+        const connectionsElement = heroSection.querySelector('.t-bold');
+        if (connectionsElement) heroData.connections = connectionsElement.innerText.trim();
+
+        // Current Company
+        const currentCompanyElement = heroSection.querySelector('.pvs-entity__caption-wrapper');
+        if (currentCompanyElement) heroData.currentCompany = currentCompanyElement.innerText.trim();
+
+        // Education
+        const educationElement = heroSection.querySelectorAll('.pvs-entity__caption-wrapper')[1];
+        if (educationElement) heroData.education = educationElement.innerText.trim();
+
+        resolve(heroData);
+      }
+    }, 1000);
+
+    setTimeout(() => {
       clearInterval(waitForElement);
-
-      const heroData = {};
-
-      // Name
-      const nameElement = heroSection.querySelector('h1.text-heading-xlarge');
-      if (nameElement) heroData.name = nameElement.innerText.trim();
-
-      // Headline
-      const headlineElement = heroSection.querySelector('.text-body-medium');
-      if (headlineElement) heroData.headline = headlineElement.innerText.trim();
-
-      // Location
-      const locationElement = heroSection.querySelector('.text-body-small:not(.inline)');
-      if (locationElement) heroData.location = locationElement.innerText.trim();
-
-      // Profile Image
-      const profileImageElement = heroSection.querySelector('.pv-top-card__photo-wrapper img');
-      if (profileImageElement) heroData.profileImageUrl = profileImageElement.src;
-
-      // Background Image
-      const backgroundImageElement = heroSection.querySelector('.profile-background-image__image-container img');
-      if (backgroundImageElement) heroData.backgroundImageUrl = backgroundImageElement.src;
-
-      // Connections
-      const connectionsElement = heroSection.querySelector('.t-bold');
-      if (connectionsElement) heroData.connections = connectionsElement.innerText.trim();
-
-      // Current Company
-      const currentCompanyElement = heroSection.querySelector('.pvs-entity__caption-wrapper');
-      if (currentCompanyElement) heroData.currentCompany = currentCompanyElement.innerText.trim();
-
-      // Education
-      const educationElement = heroSection.querySelectorAll('.pvs-entity__caption-wrapper')[1];
-      if (educationElement) heroData.education = educationElement.innerText.trim();
-
-      console.log('Hero Data:', JSON.stringify(heroData, null, 2));
-      return heroData;
-    }
-  }, 1000); // Check every second
-
-  setTimeout(() => {
-    clearInterval(waitForElement);
-    console.log("Hero section not found");
-    return { error: "Hero section not found" };
-  }, 10000); // Timeout after 10 seconds
+      console.log("Hero section not found");
+      resolve({ error: "Hero section not found" });
+    }, 10000);
+  });
 }
 
 // Usage example:
@@ -369,3 +401,34 @@ function grabLicensesCertificationsSection() {
 
 // Usage example:
 grabLicensesCertificationsSection();
+
+
+
+//------------------------ Function Calls ------------------------
+
+// Run all the grabbing functions
+async function runAllGrabFunctions() {
+    const educationData = await grabEducationSection();
+    const experienceData = await grabExperienceSection();
+    const aboutData = await grabAboutSection();
+    const heroData = await grabHeroSection();
+    const licensesCertificationsData = await grabLicensesCertificationsSection();
+
+    const profileData = {
+        education: educationData,
+        experience: experienceData,
+        about: aboutData,
+        hero: heroData,
+        licensesCertifications: licensesCertificationsData
+    };
+
+    console.log('Full Profile Data:', JSON.stringify(profileData, null, 2));
+    return profileData;
+}
+
+// Call the function to run all grab functions and log the results
+runAllGrabFunctions().then(profileData => {
+    console.log('Final Profile Data------------------------------:', profileData);
+}).catch(error => {
+    console.error('Error in runAllGrabFunctions:', error);
+});
