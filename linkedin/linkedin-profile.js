@@ -407,7 +407,7 @@ grabLicensesCertificationsSection();
 //------------------------ Function Calls ------------------------
 
 // Run all the grabbing functions
-async function runAllGrabFunctions() {
+async function runAllFunctions() {
     const educationData = await grabEducationSection();
     const experienceData = await grabExperienceSection();
     const aboutData = await grabAboutSection();
@@ -422,13 +422,67 @@ async function runAllGrabFunctions() {
         licensesCertifications: licensesCertificationsData
     };
 
-    console.log('Full Profile Data:', JSON.stringify(profileData, null, 2));
+   // console.log('Full Profile Data:', JSON.stringify(profileData, null, 2));
     return profileData;
 }
 
 // Call the function to run all grab functions and log the results
-runAllGrabFunctions().then(profileData => {
-    console.log('Final Profile Data------------------------------:', profileData);
-}).catch(error => {
-    console.error('Error in runAllGrabFunctions:', error);
-});
+
+
+
+
+//------------------------ Reclaim push ------------------------
+
+let dataCollected = false;
+
+async function fetchLinkedInData() {
+    if (dataCollected) return; // Stop if data has already been collected
+
+    try {
+        if (window.location.href.includes("https://www.linkedin.com/feed/")) {
+            alert("On LinkedIn feed page. Attempting to navigate to profile...");
+            console.log("On LinkedIn feed page. Attempting to navigate to profile...");
+            const profileLink = document.querySelector('a.profile-card-profile-picture-container');
+            if (profileLink) {
+                console.log("Profile link found. Clicking to navigate to profile...");
+                profileLink.click();
+                // Wait for the profile page to load
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Adjust the timeout as needed
+                // Now run the data collection functions
+                const data = await runAllFunctions();
+                console.log("Final Profile Data------------------------------:", data);
+                   window.reclaimFetchInjected = true;
+                window.flutter_inappwebview.callHandler(
+                    "publicData",
+                    JSON.stringify({ data })
+                );
+                dataCollected = true; // Mark data as collected
+          
+                window.location.href = "https://www.linkedin.com/dashboard/";
+              
+
+            
+            
+         
+
+                clearInterval(intervalId); // Stop the interval
+                // Add any additional processing or data sending logic here
+            } else {
+                console.log("Profile link not found on feed page.");
+            }
+        } 
+
+      
+       
+    } catch (error) {
+        console.error("There has been a problem with your fetch operation:", error);
+    }
+}
+
+function fetchDataInterval() {
+    fetchLinkedInData().catch((error) =>
+        console.error("Error in fetchDataInterval:", error)
+    );
+}
+
+const intervalId = setInterval(fetchDataInterval, 2500);
