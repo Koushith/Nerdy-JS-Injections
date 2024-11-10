@@ -113,16 +113,13 @@ async function fetchNykaaData() {
       orders = orders?.length > 150 ? orders.slice(0, 150) : orders;
       console.log('Orders:', orders);
       try {
-        //   window.reclaimFetchInjected = true;
-        //   window.flutter_inappwebview.callHandler(
-        //     "publicData",
-        //     JSON.stringify({ orders })
-        //   );
+        window.reclaimFetchInjected = true;
+        window.flutter_inappwebview.callHandler('publicData', JSON.stringify({ orders }));
         console.log('Orders:', orders);
       } catch (error) {
         alert(error);
       }
-      //  window.location.href = 'https://www.nykaa.com/prive';
+      window.location.href = 'https://www.nykaa.com/prive';
       setTimeout(() => {
         window.localStorage.clear();
       }, 5000);
