@@ -214,14 +214,44 @@ function waitForFlutterInAppWebView(callback, maxAttempts = 10, interval = 1000)
       callback();
     } else if (attempts < maxAttempts) {
       attempts++;
-      alert(`Waiting for flutter_inappwebview (attempt ${attempts}/${maxAttempts})`);
+      //alert(`Waiting for flutter_inappwebview (attempt ${attempts}/${maxAttempts})`);
       setTimeout(checkAvailability, interval);
     } else {
-      alert('flutter_inappwebview not available after maximum attempts');
+      //alert("flutter_inappwebview not available after maximum attempts");
     }
   }
 
   checkAvailability();
+}
+
+async function getUserData(yAuthorization, yExpiration, yString) {
+  const r = await await fetch('https://www.yesstyle.com/rest/myaccount/personal-information/v1', {
+    headers: {
+      accept: 'application/json, text/plain, */*',
+      'accept-language': 'en-US,en;q=0.9,ta;q=0.8',
+      priority: 'u=1, i',
+      'sec-fetch-dest': 'empty',
+      'sec-fetch-mode': 'cors',
+      'sec-fetch-site': 'same-origin',
+      'y-authorization': yAuthorization,
+      'y-expiration': yExpiration,
+      'y-string': yString,
+    },
+    referrer: 'https://www.yesstyle.com/en/secure/myaccount/personal-information.html',
+    referrerPolicy: 'same-origin',
+    body: null,
+    method: 'GET',
+    mode: 'cors',
+    credentials: 'include',
+  });
+  const data = await r.json();
+  const first_name = data.personalInformation.firstName;
+  const last_name = data.personalInformation.lastName;
+  const username = data.personalInformation.screenName;
+  const email = data.personalInformation.loginEmailAddress;
+
+  const userData = { first_name, last_name, username, email };
+  return userData;
 }
 
 async function yesstyleInjection() {
@@ -230,12 +260,16 @@ async function yesstyleInjection() {
   });
 
   try {
-    if (window.location.href === 'https://www.yesstyle.com/en/secure/myaccount/summary.html') {
+    if (
+      window.location.href === 'https://www.yesstyle.com/en/secure/myaccount/summary.html' ||
+      window.location.href == 'https://www.yesstyle.com/en/home.html'
+    ) {
       if (!window.modal) {
         modal();
         window.modal = true;
       }
       const { yAuthorization, yExpiration, yString } = await fetchAuthTokens();
+      //alert("fetched auth tokens" + yAuthorization)
 
       if (!window.yesstyleInjectionCalled) {
         try {
@@ -257,31 +291,34 @@ async function yesstyleInjection() {
           );
 
           const formattedData = formatOrderData(detailedOrders);
+          //alert("data" + formattedData)
           // console.log(JSON.stringify(formattedData, null, 2));
+
+          const userData = await getUserData(yAuthorization, yExpiration, yString);
 
           try {
             window.reclaimFetchInjected = true;
-            window.flutter_inappwebview.callHandler('publicData', JSON.stringify({ orders: formattedData }));
+            window.flutter_inappwebview.callHandler('publicData', JSON.stringify({ orders: formattedData, userData }));
             window.location.href = 'https://www.yesstyle.com/en/secure/myaccount/personal-information.html';
             window.yesstyleInjectionCalled = true;
           } catch (error) {
-            alert(error);
+            //alert(error);
           }
         } catch (error) {
-          alert('Error processing orders: ' + error);
+          //alert("Error processing orders: " + error);
         }
       }
     } else {
     }
   } catch (error) {
-    alert('Error in yesstyleInjection: ' + error);
+    //alert("Error in yesstyleInjection: " + error);
   }
 }
 
 function callWitness(auth, exp, string) {
   try {
     if (window.hdrz) {
-      alert('callWitness already called, returning');
+      //alert("callWitness already called, returning");
       return;
     }
     const rd = {
@@ -319,12 +356,12 @@ function callWitness(auth, exp, string) {
       })),
       witnessParameters: { ...window.payloadData.parameters },
     };
-    alert('flutter_inappwebview object: ' + JSON.stringify(window.flutter_inappwebview));
+    //alert("flutter_inappwebview object: " + JSON.stringify(window.flutter_inappwebview));
     window.flutter_inappwebview.callHandler('extractedData', JSON.stringify(rd));
     window.hdrz = true;
-    alert('Successfully called flutter_inappwebview.callHandler');
+    //alert("Successfully called flutter_inappwebview.callHandler");
   } catch (e) {
-    alert('Error in callWitness: ' + e);
+    //alert("Error in callWitness: " + e);
   }
 }
 
@@ -332,7 +369,7 @@ function runInjection() {
   yesstyleInjection()
     .then(() => {})
     .catch((error) => {
-      alert('Error running yesstyleInjection: ' + error);
+      //alert("Error running yesstyleInjection: " + error);
     });
 }
 
