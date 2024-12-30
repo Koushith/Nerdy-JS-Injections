@@ -1,160 +1,323 @@
-function extractSellerInfo(doc) {
-  const sellerCard = doc.querySelector('.seller-card');
+// const fs = require('fs').promises;
+
+const userState = {
+  username: null,
+  userId: null,
+};
+
+function extractSellerInfo(html) {
+  // Try to get data from script tag first
+  const scriptMatch = html.match(/window\.initialData\['SellerCard'\]\s*=\s*({[\s\S]*?});/);
+  const portfolioMatch = html.match(
+    /window\.initialData\['PortfolioShowcase-PortfolioPresenceSelfview'\]\s*=\s*({[\s\S]*?});/
+  );
+
+  if (scriptMatch) {
+    try {
+      const data = JSON.parse(scriptMatch[1]);
+      const user = data.user;
+      const portfolioData = portfolioMatch ? JSON.parse(portfolioMatch[1]) : null;
+
+      return {
+        id: portfolioData?.seller?.id || null,
+        onlineStatus: data.user.is_on_vacation ? 'Away' : 'Online',
+        profileImage: user.profile_photo,
+        username: user.username,
+        displayName: user.display_name,
+        rating: user.rating,
+        reviewCount: user.ratings_count,
+        location: user.country,
+        memberSince: new Date(user.member_since * 1000).toLocaleDateString('en-US', {
+          month: 'short',
+          year: 'numeric',
+        }),
+        avgResponseTime: `${Math.round(user.response_time / 24)} days`,
+        lastDelivery: user.recent_delivery,
+        availabilityStatus: user.is_on_vacation ? 'Away' : 'Available',
+      };
+    } catch (error) {
+      console.error('Error parsing script data:', error);
+      // Fall back to HTML parsing if script parsing fails
+    }
+  }
+
   const userInfo = {};
 
-  // Extracting online status
-  const onlineIndicator = sellerCard.querySelector('.user-online-indicator');
-  userInfo.onlineStatus = onlineIndicator ? onlineIndicator.textContent.trim() : 'Offline';
+  // Helper function to extract content between tags
+  const getTextBetween = (str, startTag, endTag) => {
+    const regex = new RegExp(`${startTag}(.*?)${endTag}`, 'is');
+    const match = str.match(regex);
+    return match ? match[1].trim() : '';
+  };
 
-  // Extracting profile image
-  const profileImage = sellerCard.querySelector('.profile-pict-img');
-  userInfo.profileImage = profileImage ? profileImage.src : '';
+  // Extract online status
+  const onlineMatch = html.match(/<div class="user-online-indicator[^"]*"[^>]*>(.*?)<\/div>/i);
+  userInfo.onlineStatus = onlineMatch ? onlineMatch[1].replace('<i class="dot">·</i>', '').trim() : 'Offline';
 
-  // Extracting username and display name
-  const usernameElement = sellerCard.querySelector('.secondary-name');
-  const displayNameElement = sellerCard.querySelector('.tbody-3.seller-link');
-  userInfo.username = usernameElement ? usernameElement.textContent.trim() : '';
-  userInfo.displayName = displayNameElement ? displayNameElement.textContent.trim() : '';
+  // Extract profile image
+  const profileImageMatch = html.match(/class="profile-pict-img"[^>]*src="([^"]+)"/i);
+  userInfo.profileImage = profileImageMatch ? profileImageMatch[1] : '';
 
-  // Extracting ratings
-  const ratingElement = sellerCard.querySelector('.rating-score');
-  const ratingsCountElement = sellerCard.querySelector('.rating-count-number');
-  userInfo.rating = ratingElement ? parseFloat(ratingElement.textContent.trim()) : 0;
-  userInfo.ratingsCount = ratingsCountElement ? parseInt(ratingsCountElement.textContent.trim()) : 0;
+  // Extract username (from secondary-name)
+  const usernameMatch = html.match(/<b class="secondary-name[^"]*">@([^<]+)<\/b>/i);
+  userInfo.username = usernameMatch ? usernameMatch[1] : '';
 
-  // Extracting location and member since
-  const stats = sellerCard.querySelectorAll('.user-stats li');
-  stats.forEach((stat) => {
-    const label = stat.querySelector('span') ? stat.querySelector('span').textContent.trim() : '';
-    const value = stat.querySelector('b') ? stat.querySelector('b').textContent.trim() : '';
-    if (label === 'From') {
-      userInfo.location = value;
-    } else if (label === 'Member since') {
-      userInfo.memberSince = value;
-    } else if (label === 'Avg. Response Time') {
-      userInfo.avgResponseTime = value;
-    } else if (label === 'Last Delivery') {
-      userInfo.lastDelivery = value;
-    }
-  });
+  // Extract display name
+  const displayNameMatch = html.match(/<button class="tbody-3 seller-link"[^>]*>([^<]+)<\/button>/i);
+  userInfo.displayName = displayNameMatch ? displayNameMatch[1] : '';
 
-  // Extracting availability status
-  const availabilityStatusElement = sellerCard.querySelector('.availability-status');
-  userInfo.availabilityStatus = availabilityStatusElement
-    ? availabilityStatusElement.textContent.trim()
-    : 'Unavailable';
+  // Extract rating
+  const ratingMatch = html.match(/<strong class="rating-score[^"]*">([0-9.]+)<\/strong>/i);
+  userInfo.rating = ratingMatch ? parseFloat(ratingMatch[1]) : 0;
+
+  // Extract review count
+  const reviewCountMatch = html.match(/<span class="rating-count-number">([^<]+)<\/span>/i);
+  userInfo.reviewCount = reviewCountMatch ? reviewCountMatch[1] : '0';
+
+  // Extract location
+  const locationMatch = html.match(
+    /<li class="location">[^<]*<span>[^<]*<[^>]+>[^<]*<\/span>From<\/span><b>([^<]+)<\/b>/i
+  );
+  userInfo.location = locationMatch ? locationMatch[1].trim() : '';
+
+  // Extract member since
+  const memberSinceMatch = html.match(
+    /<li class="member-since">[^<]*<span>[^<]*<[^>]+>[^<]*<\/span>Member since<\/span><b>([^<]+)<\/b>/i
+  );
+  userInfo.memberSince = memberSinceMatch ? memberSinceMatch[1].trim() : '';
+
+  // Extract response time
+  const responseTimeMatch = html.match(
+    /<li class="response-time">[^<]*<span>[^<]*<[^>]+>[^<]*<\/span>Avg\. Response Time<\/span><b>([^<]+)<\/b>/i
+  );
+  userInfo.avgResponseTime = responseTimeMatch ? responseTimeMatch[1].trim() : '';
+
+  // Extract last delivery
+  const lastDeliveryMatch = html.match(
+    /<li class="recent-delivery">[^<]*<span>[^<]*<[^>]+>[^<]*<\/span>Last Delivery<\/span><strong>([^<]+)<\/strong>/i
+  );
+  userInfo.lastDelivery = lastDeliveryMatch ? lastDeliveryMatch[1].trim() : '';
+
+  // Extract availability status
+  const availabilityMatch = html.match(/<span class="availability-status[^"]*">([^<]*)<\/span>/i);
+  userInfo.availabilityStatus = availabilityMatch ? availabilityMatch[1].trim() : 'Unavailable';
 
   return userInfo;
 }
 
-function extractActiveGigs() {
-  const gigsContainer = document.querySelector('.gig-columns .gig-items');
-  const gigs = [];
-
-  // Check if gigsContainer exists before proceeding
-  if (gigsContainer) {
-    console.log('Gigs container found.'); // Debugging log
-    const gigItems = gigsContainer.querySelectorAll('.gig-card-base');
-
-    gigItems.forEach((item) => {
-      const gigInfo = {
-        gigId: item.getAttribute('data-gig-id'), // Gig ID
-        gigTitle: item.querySelector('.gig-link-main h3')
-          ? item.querySelector('.gig-link-main h3').textContent.trim()
-          : '', // Gig Title
-        gigPrice: item.querySelector('.gig-price a') ? item.querySelector('.gig-price a').textContent.trim() : '', // Gig Price
-        gigRating: item.querySelector('.gig-rating strong')
-          ? parseFloat(item.querySelector('.gig-rating strong').textContent.trim())
-          : 0, // Gig Rating
-        sellerName: item.querySelector('.seller-name') ? item.querySelector('.seller-name').textContent.trim() : '', // Seller Name
-        sellerCountry: item.querySelector('.seller-country')
-          ? item.querySelector('.seller-country').textContent.trim()
-          : '', // Seller Country
-        expertise: item.querySelector('.list-view-info p')
-          ? item.querySelector('.list-view-info p').textContent.trim().replace('Expertise:', '').trim()
-          : '', // Expertise
-      };
-
-      gigs.push(gigInfo);
-    });
-  } else {
-    console.warn('No gigs container found in the document.');
-  }
-
-  console.log('Extracted active gigs:', gigs); // Debugging log
-  return {
-    gigs,
-    totalGigs: gigs.length,
-  };
-}
-
-function extractUserReviews() {
-  const reviewsData = window.initialData['UserPageReviews']?.initialState?.buying_reviews?.reviews || [];
+function extractReviews(html) {
   const reviews = [];
 
-  // Check if reviewsData exists and is an array
-  if (Array.isArray(reviewsData) && reviewsData.length > 0) {
-    console.log('Reviews data found.'); // Debugging log
+  // Find the reviews data in script tag
+  const scriptMatch = html.match(/document\.reviewsPrefetched\s*=\s*({[\s\S]*?});/);
+  if (!scriptMatch) return reviews;
 
-    reviewsData.forEach((review) => {
-      const reviewInfo = {
+  try {
+    const reviewsData = JSON.parse(scriptMatch[1]);
+    const buyingReviews = reviewsData.buying_reviews?.reviews || [];
+
+    buyingReviews.forEach((review) => {
+      reviews.push({
         reviewerName: review.username,
-        reviewerCountry: review.reviewer_country,
+        country: {
+          name: review.reviewer_country,
+          code: review.reviewer_country_code,
+        },
         rating: review.value,
-        reviewDate: new Date(review.created_at).toLocaleDateString(), // Format the date as needed
-        description: review.comment,
-        orderDuration: review.order_duration, // New field: Order Duration
-        priceRange: review.order_price_range, // New field: Price Range
-        isRepeatBuyer: review.repeat_buyer, // New field: Repeat Buyer Status
-        gigTitle: review.gig_slug, // New field: Gig Title (using gig_slug as a placeholder)
-        gigId: review.gig_id, // New field: Gig ID
-      };
-
-      reviews.push(reviewInfo);
+        time: review.created_at,
+        text: review.comment,
+        language: review.comment_language,
+        metrics: {
+          communication: review.star_summary?.communication_valuation || null,
+          quality: review.star_summary?.quality_of_delivery_valuation || null,
+          value: review.star_summary?.value_for_money_valuation || null,
+        },
+        orderDetails: {
+          id: review.encrypted_order_id,
+          duration: {
+            display: review.order_duration,
+            days: review.order_duration_in_days,
+          },
+          priceRange: {
+            local: review.order_price_range,
+            usd: review.order_price_range_usd,
+            range: {
+              start: review.price_range_start,
+              end: review.price_range_end,
+            },
+          },
+          isRepeatBuyer: review.repeat_buyer,
+          isBusiness: review.is_business,
+          isCancelled: review.is_cancelled_order,
+        },
+        gigInfo: {
+          id: review.gig_id,
+          slug: review.gig_slug,
+          category: {
+            main: review.gig_category,
+            sub: review.gig_sub_category,
+            nested: review.gig_nested_sub_category,
+          },
+        },
+        relevancy: {
+          score: review.relevancy_score,
+          original: review.original_relevancy_score,
+        },
+        reviewerStats: {
+          reviewsAsBuyer: review.reviews_count_as_buyer,
+          industry: review.reviewer_industry,
+        },
+      });
     });
-  } else {
-    console.warn('No reviews data found.');
+  } catch (error) {
+    console.error('Error parsing reviews data:', error);
   }
 
-  console.log('Extracted reviews:', reviews); // Debugging log
-  return {
-    reviews,
-    totalReviews: reviews.length,
-  };
+  return reviews;
+}
+
+// Function to initialize user info
+async function initializeUserInfo() {
+  try {
+    const response = await fetch('https://www.fiverr.com/seller_dashboard', {
+      credentials: 'include',
+      headers: {
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'none',
+      },
+    });
+
+    const html = await response.text();
+
+    // Try to extract from Header script first
+    const headerMatch = html.match(/window\.initialData\.Header\s*=\s*({[\s\S]*?});/);
+
+    if (headerMatch) {
+      const headerData = JSON.parse(headerMatch[1]);
+      if (headerData.user) {
+        userState.username = headerData.user.username;
+        userState.userId = headerData.user.id;
+        return {
+          username: userState.username,
+          userId: userState.userId,
+        };
+      }
+    }
+
+    // Fallback to Portfolio showcase script
+    const portfolioMatch = html.match(
+      /window\.initialData\['PortfolioShowcase-PortfolioPresenceSelfview'\]\s*=\s*({[\s\S]*?});/
+    );
+
+    if (portfolioMatch) {
+      const data = JSON.parse(portfolioMatch[1]);
+      userState.username = data.seller?.username;
+      userState.userId = data.seller?.id;
+      return {
+        username: userState.username,
+        userId: userState.userId,
+      };
+    }
+  } catch (error) {
+    console.error('Error initializing user info:', error);
+  }
+}
+
+// Modified extractGigs to use global user state
+async function extractGigs() {
+  try {
+    if (!userState.userId || !userState.username) {
+      await initializeUserInfo();
+    }
+
+    const response = await fetch(
+      `https://www.fiverr.com/gigs/gigs_as_json_for_user?user_id=${userState.userId}&id=${userState.username}&limit=50&page=1&filter_logo_gigs=true`,
+      {
+        credentials: 'include',
+        headers: {
+          accept: '*/*',
+          'accept-language': 'en-GB,en;q=0.5',
+          'sec-fetch-dest': 'empty',
+          'sec-fetch-mode': 'cors',
+          'sec-fetch-site': 'same-origin',
+        },
+      }
+    );
+
+    const data = await response.json();
+    const gigs = data.gigs.map((gig) => ({
+      title: gig.title_full,
+      link: `https://www.fiverr.com${gig.gig_url}`,
+      price: gig.price,
+      rating: gig.rating,
+      rating_count: gig.rating_count,
+      created_at: gig.gig_created,
+      updated_at: gig.gig_updated,
+      image: gig.image_data?.cloud_photo_url,
+      category: gig.category,
+      sub_category: gig.sub_category,
+      packages: gig.packages.map((pkg) => ({
+        title: pkg.title,
+        description: pkg.description,
+        duration: pkg.duration,
+        duration_unit: pkg.duration_unit,
+        price: pkg.price,
+      })),
+      metadata: gig.metadata,
+    }));
+
+    return {
+      gigs,
+      totalActive: gigs.length,
+    };
+  } catch (error) {
+    console.error('Error fetching gigs:', error);
+    return {
+      gigs: [],
+      totalActive: 0,
+    };
+  }
 }
 
 async function fetchSellerPage() {
   try {
-    const url = 'https://www.fiverr.com/alekyashastrula?up_rollout=true';
+    // Initialize user info when the script loads
+    await initializeUserInfo();
 
-    const headers = {
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'en-GB,en;q=0.5',
-      'Cache-Control': 'max-age=0',
-      'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-      // Add other headers as needed
-    };
-
-    const response = await fetch(url, { method: 'GET', headers });
+    console.log('fetching seller page', userState.username);
+    const response = await fetch(`https://www.fiverr.com/${userState.username}?up_rollout=true`, {
+      credentials: 'include',
+      headers: {
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'accept-language': 'en-GB,en;q=0.5',
+        'cache-control': 'max-age=0',
+        'if-none-match': 'W/"e082aa4267fb5889060ab8813cc3ee3a"',
+        priority: 'u=0, i',
+        referer: 'https://www.fiverr.com',
+        'sec-ch-ua': '"Chromium";v="130", "Brave";v="130", "Not?A_Brand";v="99"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'sec-gpc': '1',
+        'upgrade-insecure-requests': '1',
+        'user-agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+      },
+    });
     const html = await response.text();
 
-    // Log the fetched HTML to check its structure
-    console.log('html', html);
-
-    // Parse the HTML and extract information
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    // Use the existing extraction functions on the parsed document
-    const sellerInfo = extractSellerInfo(doc);
-    const activeGigsInfo = extractActiveGigs();
-    const userReviewsInfo = extractUserReviews();
+    const sellerInfo = extractSellerInfo(html);
+    const reviews = extractReviews(html);
+    const gigInfo = await extractGigs();
 
     return {
       sellerInfo,
-      activeGigsInfo,
-      userReviewsInfo,
+      reviews,
+      gigs: gigInfo,
     };
   } catch (error) {
     console.error('Error fetching seller page:', error);
@@ -162,7 +325,73 @@ async function fetchSellerPage() {
   }
 }
 
-// Example usage
-fetchSellerPage().then((data) => {
-  console.log(data);
-});
+// Replace the immediate function call with an async function
+async function getFieverSellerData() {
+  try {
+    const data = await fetchSellerPage();
+    console.log('data', data);
+    return data;
+  } catch (error) {
+    console.error('Error getting seller data:', error);
+    return null;
+  }
+}
+
+if (true) {
+  alert('seller dashboard');
+  setInterval(async () => {
+    try {
+      // Check if required data exists
+      if (!window.payloadData) {
+        return;
+      }
+
+      // Check if already injected
+      if (window.injected) {
+        return;
+      }
+      const sellerInfo = await getFieverSellerData();
+
+      // as soon as we open the webview window will have this
+      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+        window.flutter_inappwebview.callHandler('publicData', JSON.stringify({ data: sellerInfo }));
+      }
+
+      const rd = {
+        url: 'https://www.fiverr.com/user_name_and_email',
+        cookies: '',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        method: 'GET',
+        requestBody: '',
+        responseBody: 'response',
+        //   extractedParams: {
+        //     active_cryptocurrencies: 'kooooooooooo', // this is the template lit we used on devtool. optional this is the valkue that wuill be try to match if typoe = contains
+        //   },
+        geoLocation: window.payloadData.geoLocation,
+        responseRedactions: [
+          {
+            jsonPath: '$.username',
+            regex: '"username":(.*)',
+          },
+        ],
+
+        responseMatches: [
+          {
+            type: 'regex',
+            value: '"username":(?<username>.*)',
+          },
+        ],
+        witnessParameters: { ...window.payloadData.parameters }, // witness parameters- boiler plate
+      };
+
+      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+        window.flutter_inappwebview.callHandler('extractedData', JSON.stringify(rd));
+        window.injected = true; // this is to prevent infinite loop sef to true in the end
+      }
+    } catch (e) {
+      console.error('Injection error:', e);
+    }
+  }, 1000);
+}
