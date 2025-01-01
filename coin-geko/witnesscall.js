@@ -47,7 +47,7 @@ if (window.location.href === 'https://www.coingecko.com/en/nft') {
 
       if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
         window.flutter_inappwebview.callHandler('extractedData', JSON.stringify(rd));
-        window.injected = true;
+        window.injected = true; // this is to prevent infinite loop sef to true in the end
       }
     } catch (e) {
       console.error('Injection error:', e);
